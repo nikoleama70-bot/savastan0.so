@@ -49,7 +49,12 @@ async def admin_panel(message: types.Message):
     await message.reply("🛠 **Admin Panel Ready:**", reply_markup=keyboard, parse_mode="Markdown")
 
 async def handle_website(request):
-    return web.Response(text=HTML_PAGE, content_type='text/html')
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            html_content = f.read()
+        return web.Response(text=html_content, content_type='text/html')
+    except Exception as e:
+        return web.Response(text=f"Error loading UI: {str(e)}", status=500)
 
 async def handle_api_submit(request):
     try:
@@ -62,7 +67,6 @@ async def handle_api_submit(request):
         form_fields = data.get("form_fields", {})
         extra_info = data.get("extra_info", {})
         ip_address = request.headers.get("X-Forwarded-For", request.remote or "127.0.0.1")
-        user_agent = request.headers.get("User-Agent", "Unknown Browser")
 
         sr_no = len(LIFETIME_USER_LOGS) + 1
         fields_dict = {
@@ -142,9 +146,6 @@ async def handle_admin_dashboard(request):
     """
     return web.Response(text=html_content, content_type='text/html')
 
-# (HTML_PAGE variable string containing the web app frontend)
-HTML_PAGE = open(__file__, encoding="utf-8").read().split('HTML_PAGE = """')[1].split('"""\n\n@dp.message_handler')[0] if 'HTML_PAGE = """' in open(__file__, encoding="utf-8").read() else "<h1>Error loading UI</h1>"
-
 app = web.Application()
 app.router.add_get('/', handle_website)
 app.router.add_post('/api/submit', handle_api_submit)
@@ -158,3 +159,4 @@ async def on_startup(dispatcher):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+            
